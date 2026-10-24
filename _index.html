@@ -1,0 +1,1326 @@
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    brand: {
+                        dark: '#0f172a',
+                        navy: '#1e293b',
+                        accent: '#10b981',
+                        accentDark: '#059669',
+                        blue: '#3b82f6',
+                        danger: '#ef4444',
+                        warning: '#f59e0b'
+                    }
+                }
+            }
+        }
+    }
+</script>
+
+<style>
+    body {
+        background-color: #0f172a;
+        color: #f8fafc;
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+        body {
+            background-color: white !important;
+            color: black !important;
+        }
+        .print-only {
+            display: block !important;
+        }
+        .print-card {
+            border: 1px solid #ccc !important;
+            box-shadow: none !important;
+            background: white !important;
+            color: black !important;
+        }
+    }
+
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+        background: #1e293b;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #334155;
+        border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #475569;
+    }
+
+    input[type="range"] {
+        accent-color: #3b82f6;
+    }
+</style>
+
+
+<!-- CABEÇALHO PRINCIPAL -->
+<header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-40 no-print">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="bg-emerald-500 text-slate-950 p-2.5 rounded-xl font-black text-xl tracking-wider shadow-lg shadow-emerald-500/20">
+                RD
+            </div>
+            <div>
+                <h1 class="font-bold text-lg leading-tight text-slate-100">RD Serviços</h1>
+                <p class="text-xs text-slate-400">Manutenção & Jardinagem</p>
+            </div>
+        </div>
+
+        <!-- Botões de Backup Global -->
+        <div class="flex items-center gap-2">
+            <button onclick="exportarBackupJSON()" title="Exportar Backup dos Dados" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-3 py-2 rounded-lg border border-slate-700 flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-download text-emerald-400"></i>
+                <span class="hidden sm:inline">Backup</span>
+            </button>
+            <label title="Importar Backup dos Dados" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-3 py-2 rounded-lg border border-slate-700 flex items-center gap-1.5 cursor-pointer transition">
+                <i class="fa-solid fa-upload text-blue-400"></i>
+                <span class="hidden sm:inline">Restaurar</span>
+                <input type="file" id="importFileInput" accept=".json" class="hidden" onchange="importarBackupJSON(event)">
+            </label>
+        </div>
+    </div>
+</header>
+
+<!-- ÁREA PRINCIPAL DE CONTEÚDO (MÓDULOS) -->
+<main class="max-w-7xl mx-auto w-full p-4 flex-1">
+
+    <!-- MÓDULO 1: FINANCEIRO / FLUXO DE CAIXA -->
+    <section id="mod-financeiro" class="tab-content space-y-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50">
+            <div>
+                <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2">
+                    <i class="fa-solid fa-wallet text-emerald-400"></i> Fluxo de Caixa
+                </h2>
+                <p class="text-xs text-slate-400">Controle total de receitas, despesas e pendências</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                <input type="month" id="finFiltroMes" onchange="renderizarFinanceiro()" class="bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-emerald-500 flex-1 sm:flex-none">
+                <button onclick="exportarExcelFinanceiro()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-2 rounded-lg font-semibold flex items-center gap-1.5 transition shadow">
+                    <i class="fa-solid fa-file-excel"></i> Excel
+                </button>
+                <button onclick="window.print()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-3 py-2 rounded-lg font-semibold flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-print"></i> PDF/Imprimir
+                </button>
+            </div>
+        </div>
+
+        <!-- Cards Indicadores -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div class="bg-slate-800/80 p-4 rounded-2xl border border-slate-700/60 relative overflow-hidden">
+                <div class="absolute -right-2 -bottom-2 text-emerald-500/10 text-6xl font-black"><i class="fa-solid fa-arrow-down"></i></div>
+                <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">Entradas (Pagas)</span>
+                <div id="finCardEntradas" class="text-xl sm:text-2xl font-bold text-emerald-400 mt-1">R$ 0,00</div>
+            </div>
+
+            <div class="bg-slate-800/80 p-4 rounded-2xl border border-slate-700/60 relative overflow-hidden">
+                <div class="absolute -right-2 -bottom-2 text-rose-500/10 text-6xl font-black"><i class="fa-solid fa-arrow-up"></i></div>
+                <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">Saídas (Pagas)</span>
+                <div id="finCardSaidas" class="text-xl sm:text-2xl font-bold text-rose-400 mt-1">R$ 0,00</div>
+            </div>
+
+            <div class="bg-slate-800/80 p-4 rounded-2xl border border-slate-700/60 relative overflow-hidden">
+                <div class="absolute -right-2 -bottom-2 text-amber-500/10 text-6xl font-black"><i class="fa-solid fa-clock"></i></div>
+                <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">A Receber / Pagar</span>
+                <div id="finCardPendente" class="text-xl sm:text-2xl font-bold text-amber-400 mt-1">R$ 0,00</div>
+            </div>
+
+            <div class="bg-slate-800/80 p-4 rounded-2xl border border-slate-700/60 relative overflow-hidden col-span-2 lg:col-span-1">
+                <div class="absolute -right-2 -bottom-2 text-blue-500/10 text-6xl font-black"><i class="fa-solid fa-scale-balanced"></i></div>
+                <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">Saldo do Mês</span>
+                <div id="finCardSaldo" class="text-xl sm:text-2xl font-bold text-blue-400 mt-1">R$ 0,00</div>
+            </div>
+        </div>
+
+        <!-- Importador de PDF Bancário -->
+        <div class="bg-slate-800/90 p-4 rounded-2xl border border-blue-500/40 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 no-print">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-100 flex items-center gap-2">
+                        <i class="fa-solid fa-file-pdf text-blue-400"></i> Preenchimento Automático via PDF Bancário
+                    </h3>
+                    <p class="text-xs text-slate-400">Anexe extratos ou comprovantes Pix (Caixa, Nubank, PicPay, Bradesco, Santander, Mercado Pago, BB)</p>
+                </div>
+                <label class="bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs px-4 py-2.5 rounded-xl cursor-pointer transition shadow-lg shadow-blue-600/20 flex items-center gap-2">
+                    <i class="fa-solid fa-file-import text-sm"></i>
+                    <span>Anexar PDF Bancário</span>
+                    <input type="file" id="pdfFileInput" accept="application/pdf" class="hidden" onchange="processarPDFBancario(event)">
+                </label>
+            </div>
+            <div id="pdfStatusMsg" class="mt-2 text-xs hidden"></div>
+        </div>
+
+        <!-- Formulário Novo Lançamento -->
+        <div class="bg-slate-800/80 p-4 sm:p-5 rounded-2xl border border-slate-700/60 no-print">
+            <h3 class="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">
+                <i class="fa-solid fa-circle-plus text-emerald-400"></i> Cadastrar Nova Movimentação
+            </h3>
+            <form id="finForm" onsubmit="salvarLancamento(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Data</label>
+                    <input type="date" id="finData" required class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 focus:outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Tipo</label>
+                    <select id="finTipo" required class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 focus:outline-none focus:border-emerald-500">
+                        <option value="Entrada">Entrada (Receita)</option>
+                        <option value="Saída">Saída (Despesa)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Cliente / Fornecedor</label>
+                    <input type="text" id="finEntidade" placeholder="Ex: Sr. Carlos / Posto" required class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 focus:outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Descrição</label>
+                    <input type="text" id="finDescricao" placeholder="Ex: Manutenção de Roçadeira" required class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 focus:outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Categoria</label>
+                    <select id="finCategoria" required class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 focus:outline-none focus:border-emerald-500">
+                        <option value="Jardinagem">Jardinagem / Gramado</option>
+                        <option value="Piscina">Tratamento de Piscina</option>
+                        <option value="Manutenção">Manutenção de Motores/Eletro</option>
+                        <option value="Combustível">Combustível / Transporte</option>
+                        <option value="Peças/Insumos">Peças, Fios e Produtos</option>
+                        <option value="Outros">Outros</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Pagamento</label>
+                    <select id="finMeio" required class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 focus:outline-none focus:border-emerald-500">
+                        <option value="Pix">Pix</option>
+                        <option value="Dinheiro">Dinheiro</option>
+                        <option value="Cartão">Cartão</option>
+                        <option value="Boleto">Boleto</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Status</label>
+                    <select id="finStatus" required class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 focus:outline-none focus:border-emerald-500">
+                        <option value="Pago">Concluído / Pago</option>
+                        <option value="Pendente">Pendente / A Receber</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Valor (R$)</label>
+                    <input type="number" step="0.01" id="finValor" placeholder="0,00" required class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 focus:outline-none focus:border-emerald-500">
+                </div>
+                <div class="sm:col-span-2 lg:col-span-4 mt-2">
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-emerald-600/20 transition">
+                        + Adicionar Lançamento
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Tabela de Lançamentos -->
+        <div class="bg-slate-800/80 rounded-2xl border border-slate-700/60 overflow-hidden shadow-xl">
+            <div class="p-4 border-b border-slate-700/60 flex flex-col sm:flex-row justify-between items-center gap-3 no-print">
+                <h3 class="text-sm font-semibold text-slate-200">Histórico de Movimentações</h3>
+                <input type="text" id="finBusca" onkeyup="renderizarFinanceiro()" placeholder="Buscar cliente, descrição..." class="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 w-full sm:w-64 focus:outline-none focus:border-emerald-500">
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                    <thead>
+                        <tr class="bg-slate-900/80 text-slate-400 uppercase text-[10px] sm:text-xs tracking-wider border-b border-slate-700/60">
+                            <th class="p-3">Data</th>
+                            <th class="p-3">Tipo</th>
+                            <th class="p-3">Cliente/Fornecedor</th>
+                            <th class="p-3">Descrição</th>
+                            <th class="p-3">Categoria</th>
+                            <th class="p-3">Meio</th>
+                            <th class="p-3">Status</th>
+                            <th class="p-3 text-right">Valor</th>
+                            <th class="p-3 text-center no-print">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="finTabelaCorpo" class="divide-y divide-slate-700/40 text-slate-200">
+                        <!-- Inserido dinamicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- MÓDULO 2: GESTÃO DE CLIENTES E LOCAIS -->
+    <section id="mod-clientes" class="tab-content hidden space-y-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50">
+            <div>
+                <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2">
+                    <i class="fa-solid fa-users text-blue-400"></i> Carteira de Clientes e Locais
+                </h2>
+                <p class="text-xs text-slate-400">Dados dos clientes, WhatsApp direto e especificações do local</p>
+            </div>
+        </div>
+
+        <!-- Form Cadastro Cliente -->
+        <div class="bg-slate-800/80 p-4 sm:p-5 rounded-2xl border border-slate-700/60 no-print">
+            <h3 class="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">
+                <i class="fa-solid fa-user-plus text-blue-400"></i> Cadastrar Novo Cliente
+            </h3>
+            <form id="cliForm" onsubmit="salvarCliente(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Nome Completo</label>
+                    <input type="text" id="cliNome" placeholder="Ex: Sr. Carlos Alberto" required class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">WhatsApp / Telefone</label>
+                    <input type="text" id="cliTelefone" placeholder="Ex: 11999998888 (DDD + Número)" required class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Endereço / Bairro / Chácara</label>
+                    <input type="text" id="cliEndereco" placeholder="Ex: Condomínio Sol Nascente, Casa 12" required class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Serviço Principal</label>
+                    <select id="cliServico" required class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 focus:outline-none focus:border-blue-500">
+                        <option value="Jardinagem Manutenção">Jardinagem / Corte de Grama</option>
+                        <option value="Limpeza de Piscina">Limpeza / Tratamento de Piscina</option>
+                        <option value="Manutenção Geral">Manutenção Residencial / Reboque</option>
+                        <option value="Completo (Grama + Piscina)">Completo (Jardim + Piscina)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Tamanho do Gramado (m²)</label>
+                    <input type="number" id="cliGramado" placeholder="Ex: 350" class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Volume Piscina (Litros)</label>
+                    <input type="number" id="cliPiscina" placeholder="Ex: 45000" class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 focus:outline-none focus:border-blue-500">
+                </div>
+                <div class="sm:col-span-2 lg:col-span-3">
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Observações / Detalhes do Local</label>
+                    <input type="text" id="cliObs" placeholder="Ex: Cão na casa, necessita trazer extensão de 30m, grama Esmeralda" class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 focus:outline-none focus:border-blue-500">
+                </div>
+                <div class="sm:col-span-2 lg:col-span-3 mt-2">
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-600/20 transition">
+                        + Cadastrar Cliente
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Lista de Clientes -->
+        <div class="bg-slate-800/80 rounded-2xl border border-slate-700/60 p-4">
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-3 mb-4 no-print">
+                <h3 class="text-sm font-semibold text-slate-200">Lista de Clientes Registrados</h3>
+                <input type="text" id="cliBusca" onkeyup="renderizarClientes()" placeholder="Buscar cliente por nome ou endereço..." class="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 w-full sm:w-64 focus:outline-none focus:border-blue-500">
+            </div>
+            <div id="cliListaGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Inserido dinamicamente -->
+            </div>
+        </div>
+    </section>
+
+
+    <!-- MÓDULO 3: MÁQUINAS E EQUIPAMENTOS -->
+    <section id="mod-equipamentos" class="tab-content hidden space-y-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50">
+            <div>
+                <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2">
+                    <i class="fa-solid fa-screws-tilting text-amber-400"></i> Máquinas e Equipamentos
+                </h2>
+                <p class="text-xs text-slate-400">Controle de revisões, troca de óleo, filtros e velas do maquinário</p>
+            </div>
+        </div>
+
+        <!-- Form Equipamento -->
+        <div class="bg-slate-800/80 p-4 sm:p-5 rounded-2xl border border-slate-700/60 no-print">
+            <h3 class="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">
+                <i class="fa-solid fa-plus-circle text-amber-400"></i> Cadastrar / Atualizar Equipamento
+            </h3>
+            <form id="eqForm" onsubmit="salvarEquipamento(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Nome da Máquina / Veículo</label>
+                    <input type="text" id="eqNome" placeholder="Ex: Roçadeira Stihl FS 220" required class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Tipo / Combustível</label>
+                    <select id="eqTipo" required class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 focus:outline-none focus:border-amber-500">
+                        <option value="Gasolina 2 Tempos">Gasolina 2 Tempos (Óleo 2T)</option>
+                        <option value="Gasolina 4 Tempos">Gasolina 4 Tempos</option>
+                        <option value="Elétrico / Bateria">Elétrico / Bateria</option>
+                        <option value="Veículo / Reboque">Veículo / Reboque</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Última Revisão</label>
+                    <input type="date" id="eqDataUltima" required class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Próxima Revisão / Manutenção</label>
+                    <input type="date" id="eqDataProxima" required class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 focus:outline-none focus:border-amber-500">
+                </div>
+                <div class="sm:col-span-2 lg:col-span-4">
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Notas de Manutenção (Filtro, Vela, Óleo, Peças Trocadas)</label>
+                    <input type="text" id="eqNotas" placeholder="Ex: Trocado vela e filtro de ar em Out/26. Usar óleo Stihl 2T 1:50" class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 focus:outline-none focus:border-amber-500">
+                </div>
+                <div class="sm:col-span-2 lg:col-span-4 mt-2">
+                    <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-amber-600/20 transition">
+                        + Cadastrar Equipamento
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Grid de Equipamentos -->
+        <div id="eqGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Inserido dinamicamente -->
+        </div>
+    </section>
+
+
+    <!-- MÓDULO 4: ORÇAMENTOS E RECIBOS -->
+    <section id="mod-orcamentos" class="tab-content hidden space-y-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 no-print">
+            <div>
+                <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2">
+                    <i class="fa-solid fa-file-invoice-dollar text-purple-400"></i> Gerador de Orçamentos & Recibos
+                </h2>
+                <p class="text-xs text-slate-400">Gere documentos profissionais para impressão ou cópia rápida no WhatsApp</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Formulário de Gerar Documento -->
+            <div class="lg:col-span-5 bg-slate-800/80 p-5 rounded-2xl border border-slate-700/60 space-y-4 no-print">
+                <h3 class="text-sm font-semibold text-slate-200 flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-purple-400"></i> Dados do Documento
+                </h3>
+                
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Tipo de Documento</label>
+                    <select id="docTipo" onchange="gerarPreviewDoc()" class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 focus:outline-none focus:border-purple-500">
+                        <option value="Orçamento">Orçamento de Serviço</option>
+                        <option value="Recibo">Recibo de Pagamento</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Cliente</label>
+                    <select id="docClienteSelect" onchange="preencherClienteDoc()" class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 focus:outline-none focus:border-purple-500">
+                        <option value="">-- Selecionar da Lista de Clientes --</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Nome do Cliente (Manual se não selecionado)</label>
+                    <input type="text" id="docClienteNome" oninput="gerarPreviewDoc()" placeholder="Ex: Sr. Marcos Vinícius" class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 focus:outline-none focus:border-purple-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Endereço do Local</label>
+                    <input type="text" id="docClienteEnd" oninput="gerarPreviewDoc()" placeholder="Ex: Chácara dos Pinheiros, Lote 4" class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 focus:outline-none focus:border-purple-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Descrição dos Serviços / Peças</label>
+                    <textarea id="docServicos" oninput="gerarPreviewDoc()" rows="3" placeholder="Ex: - Roçagem de gramado (400m²)&#10;- Aplicação de cloro e clarificante na piscina&#10;- Poda de acabamento em cerca viva" class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 focus:outline-none focus:border-purple-500"></textarea>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Valor Total (R$)</label>
+                        <input type="number" step="0.01" id="docValor" oninput="gerarPreviewDoc()" placeholder="0,00" class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 focus:outline-none focus:border-purple-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Validade / Data</label>
+                        <input type="date" id="docData" onchange="gerarPreviewDoc()" class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 focus:outline-none focus:border-purple-500">
+                    </div>
+                </div>
+
+                <div class="pt-2 flex flex-col gap-2">
+                    <button onclick="copiarDocWhatsApp()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2 text-sm shadow">
+                        <i class="fa-brands fa-whatsapp text-lg"></i> Copiar Texto p/ WhatsApp
+                    </button>
+                    <button onclick="window.print()" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2 text-sm shadow">
+                        <i class="fa-solid fa-print"></i> Imprimir / Salvar PDF
+                    </button>
+                </div>
+            </div>
+
+            <!-- Pré-Visualização do Documento -->
+            <div class="lg:col-span-7 bg-slate-900 p-2 sm:p-6 rounded-2xl border border-slate-700/60 flex justify-center">
+                <div id="docPreviewContainer" class="w-full max-w-xl bg-white text-slate-900 p-6 sm:p-8 rounded-xl shadow-2xl print-card font-sans text-sm space-y-6">
+                    <!-- Conteúdo Gerado Dinamicamente -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- MÓDULO 5: SIMULADOR DE PRECIFICAÇÃO E ROI -->
+    <section id="mod-precificacao" class="tab-content hidden space-y-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50">
+            <div>
+                <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2">
+                    <i class="fa-solid fa-calculator text-blue-400"></i> Simulador de Precificação & ROI
+                </h2>
+                <p class="text-xs text-slate-400">Calcule o valor exato do serviço considerando custos, depreciação e margem</p>
+            </div>
+            
+            <div class="flex bg-slate-900 p-1 rounded-xl border border-slate-700">
+                <button id="btn-prec-diario" onclick="setPrecMode('diario')" class="px-3 py-1.5 text-xs font-bold rounded-lg text-white bg-blue-600 transition">Diário / Serviço</button>
+                <button id="btn-prec-mensal" onclick="setPrecMode('mensal')" class="px-3 py-1.5 text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200 transition">Projeção Mensal</button>
+            </div>
+        </div>
+
+        <!-- Cards Resumo Precificação -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="bg-slate-800/80 p-4 rounded-2xl border border-slate-700/60">
+                <span id="lbl-prec-custo" class="text-xs text-slate-400 uppercase font-medium">Custo Operacional Direto</span>
+                <div id="prec-custo" class="text-2xl font-bold text-slate-100 mt-1">R$ 0,00</div>
+            </div>
+            <div class="bg-slate-800/80 p-4 rounded-2xl border border-slate-700/60">
+                <span id="lbl-prec-lucro" class="text-xs text-slate-400 uppercase font-medium">Margem RD (Lucro Líquido)</span>
+                <div id="prec-lucro" class="text-2xl font-bold text-emerald-400 mt-1">R$ 0,00</div>
+            </div>
+            <div class="bg-slate-800/80 p-4 rounded-2xl border border-blue-500/50 bg-blue-500/10">
+                <span id="lbl-prec-total" class="text-xs text-blue-300 uppercase font-medium">Preço Final ao Cliente</span>
+                <div id="prec-total" class="text-2xl font-bold text-blue-400 mt-1">R$ 0,00</div>
+            </div>
+        </div>
+
+        <!-- Layout do Simulador -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            <!-- Gráfico de Rosca -->
+            <div class="lg:col-span-5 bg-slate-800/80 p-5 rounded-2xl border border-slate-700/60 flex flex-col items-center">
+                <div class="relative w-full h-56">
+                    <canvas id="precChart"></canvas>
+                </div>
+                <div class="flex flex-wrap justify-center gap-3 mt-4 text-xs text-slate-400">
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>Combustível</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-indigo-400"></span>Insumos</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>Depreciação</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>Mão de Obra</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span>Margem RD</span>
+                </div>
+            </div>
+
+            <!-- Sliders de Controlo -->
+            <div class="lg:col-span-7 bg-slate-800/80 p-5 rounded-2xl border border-slate-700/60 space-y-4">
+                <div id="row-prec-dias" class="space-y-1 hidden">
+                    <div class="flex justify-between text-xs">
+                        <span class="text-slate-300">Dias Trabalhados no Mês</span>
+                        <span id="val-prec-dias" class="font-bold text-blue-400">20 dias</span>
+                    </div>
+                    <input type="range" id="slider-prec-dias" min="1" max="30" step="1" value="20" oninput="atualizarPrecificacao()" class="w-full bg-slate-900 rounded-lg h-2 cursor-pointer">
+                </div>
+
+                <div class="space-y-1">
+                    <div class="flex justify-between text-xs">
+                        <span class="text-slate-300">Combustível / Óleo (R$)</span>
+                        <span id="val-prec-combustivel" class="font-bold text-blue-400">R$ 25,00</span>
+                    </div>
+                    <input type="range" id="slider-prec-combustivel" min="0" max="200" step="5" value="25" oninput="atualizarPrecificacao()" class="w-full bg-slate-900 rounded-lg h-2 cursor-pointer">
+                </div>
+
+                <div class="space-y-1">
+                    <div class="flex justify-between text-xs">
+                        <span class="text-slate-300">Insumos / Fio de Nylon (R$)</span>
+                        <span id="val-prec-insumos" class="font-bold text-blue-400">R$ 15,00</span>
+                    </div>
+                    <input type="range" id="slider-prec-insumos" min="0" max="200" step="5" value="15" oninput="atualizarPrecificacao()" class="w-full bg-slate-900 rounded-lg h-2 cursor-pointer">
+                </div>
+
+                <div class="space-y-1">
+                    <div class="flex justify-between text-xs">
+                        <span class="text-slate-300">Reserva ROI / Depreciação de Máquinas (R$)</span>
+                        <span id="val-prec-depreciacao" class="font-bold text-blue-400">R$ 20,00</span>
+                    </div>
+                    <input type="range" id="slider-prec-depreciacao" min="0" max="200" step="5" value="20" oninput="atualizarPrecificacao()" class="w-full bg-slate-900 rounded-lg h-2 cursor-pointer">
+                </div>
+
+                <div class="space-y-1">
+                    <div class="flex justify-between text-xs">
+                        <span class="text-slate-300">Horas de Trabalho (por dia)</span>
+                        <span id="val-prec-horas" class="font-bold text-blue-400">6 h</span>
+                    </div>
+                    <input type="range" id="slider-prec-horas" min="1" max="16" step="1" value="6" oninput="atualizarPrecificacao()" class="w-full bg-slate-900 rounded-lg h-2 cursor-pointer">
+                </div>
+
+                <div class="space-y-1">
+                    <div class="flex justify-between text-xs">
+                        <span class="text-slate-300">Valor da Hora (R$/h)</span>
+                        <span id="val-prec-valorHora" class="font-bold text-blue-400">R$ 30,00</span>
+                    </div>
+                    <input type="range" id="slider-prec-valorHora" min="10" max="100" step="5" value="30" oninput="atualizarPrecificacao()" class="w-full bg-slate-900 rounded-lg h-2 cursor-pointer">
+                </div>
+
+                <div class="space-y-1">
+                    <div class="flex justify-between text-xs">
+                        <span class="text-slate-300">Margem RD (%)</span>
+                        <span id="val-prec-margem" class="font-bold text-blue-400">20%</span>
+                    </div>
+                    <input type="range" id="slider-prec-margem" min="0" max="60" step="5" value="20" oninput="atualizarPrecificacao()" class="w-full bg-slate-900 rounded-lg h-2 cursor-pointer">
+                </div>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<!-- MENU DE NAVEGAÇÃO INFERIOR (TABBAR) -->
+<nav class="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 z-50 no-print">
+    <div class="max-w-xl mx-auto grid grid-cols-5 gap-1 p-1">
+        <button onclick="mudarAba('mod-financeiro')" id="tab-mod-financeiro" class="tab-btn active flex flex-col items-center py-2 px-1 rounded-xl text-emerald-400 font-medium transition text-xs">
+            <i class="fa-solid fa-wallet text-base mb-0.5"></i>
+            Caixa
+        </button>
+        <button onclick="mudarAba('mod-clientes')" id="tab-mod-clientes" class="tab-btn flex flex-col items-center py-2 px-1 rounded-xl text-slate-400 hover:text-slate-200 font-medium transition text-xs">
+            <i class="fa-solid fa-users text-base mb-0.5"></i>
+            Clientes
+        </button>
+        <button onclick="mudarAba('mod-equipamentos')" id="tab-mod-equipamentos" class="tab-btn flex flex-col items-center py-2 px-1 rounded-xl text-slate-400 hover:text-slate-200 font-medium transition text-xs">
+            <i class="fa-solid fa-screws-tilting text-base mb-0.5"></i>
+            Máquinas
+        </button>
+        <button onclick="mudarAba('mod-orcamentos')" id="tab-mod-orcamentos" class="tab-btn flex flex-col items-center py-2 px-1 rounded-xl text-slate-400 hover:text-slate-200 font-medium transition text-xs">
+            <i class="fa-solid fa-file-invoice-dollar text-base mb-0.5"></i>
+            Recibos
+        </button>
+        <button onclick="mudarAba('mod-precificacao')" id="tab-mod-precificacao" class="tab-btn flex flex-col items-center py-2 px-1 rounded-xl text-slate-400 hover:text-slate-200 font-medium transition text-xs">
+            <i class="fa-solid fa-calculator text-base mb-0.5"></i>
+            Preços
+        </button>
+    </div>
+</nav>
+
+<!-- JAVASCRIPT PRINCIPAL -->
+<script>
+    const DB_FIN = 'RD_FINANCEIRO_V1';
+    const DB_CLI = 'RD_CLIENTES_V1';
+    const DB_EQ = 'RD_EQUIPAMENTOS_V1';
+
+    let financeiro = [];
+    let clientes = [];
+    let equipamentos = [];
+    let precChart = null;
+    let precMode = 'diario';
+
+    const exemploFin = [
+        { id: 1, data: '2026-10-02', tipo: 'Entrada', entidade: 'Dona Ana', descricao: 'Corte de grama e bordas', categoria: 'Jardinagem', meio: 'Pix', status: 'Pago', valor: 250.00 },
+        { id: 2, data: '2026-10-05', tipo: 'Saída', entidade: 'Posto Central', descricao: 'Gasolina para roçadeira', categoria: 'Combustível', meio: 'Cartão', status: 'Pago', valor: 85.00 },
+        { id: 3, data: '2026-10-12', tipo: 'Entrada', entidade: 'Chácara Kumbaya', descricao: 'Tratamento de choque e cloro na piscina', categoria: 'Piscina', meio: 'Pix', status: 'Pago', valor: 450.00 },
+        { id: 4, data: '2026-10-20', tipo: 'Entrada', entidade: 'Sr. Melquior', descricao: 'Manutenção de motor a gasolina', categoria: 'Manutenção', meio: 'Pix', status: 'Pendente', valor: 300.00 }
+    ];
+
+    const exemploCli = [
+        { id: 1, nome: 'Dona Ana', telefone: '11999887766', endereco: 'Rua das Flores, 120 - Bairro Alto', servico: 'Jardinagem Manutenção', gramado: '300', piscina: '', obs: 'Grama Esmeralda, recolher aparas em sacos.' },
+        { id: 2, nome: 'Chácara Kumbaya', telefone: '11988776655', endereco: 'Estrada do Lago, Km 4', servico: 'Completo (Grama + Piscina)', gramado: '800', piscina: '50000', obs: 'Entrada liberada na portaria. Filtro fica no alçapão dos fundos.' }
+    ];
+
+    const exemploEq = [
+        { id: 1, nome: 'Roçadeira Stihl FS 220', tipo: 'Gasolina 2 Tempos', dataUltima: '2026-09-10', dataProxima: '2026-11-10', notas: 'Mistura 1:50 Óleo Stihl. Trocado carretel de nylon.' },
+        { id: 2, nome: 'Cortador de Grama Trapp 4HP', tipo: 'Gasolina 4 Tempos', dataUltima: '2026-08-01', dataProxima: '2026-10-15', notas: 'Verificar óleo do motor 20W50 e afiar lâmina.' }
+    ];
+
+    window.onload = function() {
+        carregarTudoLocalStorage();
+        
+        const hoje = new Date().toISOString().split('T')[0];
+        document.getElementById('finData').value = hoje;
+        document.getElementById('docData').value = hoje;
+        document.getElementById('eqDataUltima').value = hoje;
+        
+        const anoMes = hoje.substring(0, 7);
+        document.getElementById('finFiltroMes').value = anoMes;
+
+        renderizarFinanceiro();
+        renderizarClientes();
+        renderizarEquipamentos();
+        atualizarSelectClientesDoc();
+        gerarPreviewDoc();
+        initPrecChart();
+        atualizarPrecificacao();
+    };
+
+    function mudarAba(idAba) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+        document.getElementById(idAba).classList.remove('hidden');
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('text-emerald-400');
+            btn.classList.add('text-slate-400');
+        });
+
+        const activeBtn = document.getElementById(`tab-${idAba}`);
+        if(activeBtn) {
+            activeBtn.classList.remove('text-slate-400');
+            activeBtn.classList.add('text-emerald-400');
+        }
+    }
+
+    function carregarTudoLocalStorage() {
+        const f = localStorage.getItem(DB_FIN);
+        const c = localStorage.getItem(DB_CLI);
+        const e = localStorage.getItem(DB_EQ);
+
+        financeiro = f ? JSON.parse(f) : exemploFin;
+        clientes = c ? JSON.parse(c) : exemploCli;
+        equipamentos = e ? JSON.parse(e) : exemploEq;
+
+        if(!f) salvarBD(DB_FIN, financeiro);
+        if(!c) salvarBD(DB_CLI, clientes);
+        if(!e) salvarBD(DB_EQ, equipamentos);
+    }
+
+    function salvarBD(chave, dados) {
+        localStorage.setItem(chave, JSON.stringify(dados));
+    }
+
+    function exportarBackupJSON() {
+        const backup = {
+            financeiro: financeiro,
+            clientes: clientes,
+            equipamentos: equipamentos,
+            dataBackup: new Date().toISOString()
+        };
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backup, null, 2));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", `RD_Servicos_Backup_${new Date().toISOString().split('T')[0]}.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+    }
+
+    function importarBackupJSON(event) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const dados = JSON.parse(e.target.result);
+                if (dados.financeiro && dados.clientes && dados.equipamentos) {
+                    financeiro = dados.financeiro;
+                    clientes = dados.clientes;
+                    equipamentos = dados.equipamentos;
+
+                    salvarBD(DB_FIN, financeiro);
+                    salvarBD(DB_CLI, clientes);
+                    salvarBD(DB_EQ, equipamentos);
+
+                    renderizarFinanceiro();
+                    renderizarClientes();
+                    renderizarEquipamentos();
+                    atualizarSelectClientesDoc();
+
+                    alert('Backup restaurado com sucesso!');
+                } else {
+                    alert('Arquivo de backup inválido.');
+                }
+            } catch (err) {
+                alert('Erro ao ler o arquivo de backup.');
+            }
+        };
+        reader.readAsText(event.target.files[0]);
+    }
+
+    /* --- FINANCEIRO --- */
+    function salvarLancamento(e) {
+        e.preventDefault();
+        const novo = {
+            id: Date.now(),
+            data: document.getElementById('finData').value,
+            tipo: document.getElementById('finTipo').value,
+            entidade: document.getElementById('finEntidade').value,
+            descricao: document.getElementById('finDescricao').value,
+            categoria: document.getElementById('finCategoria').value,
+            meio: document.getElementById('finMeio').value,
+            status: document.getElementById('finStatus').value,
+            valor: parseFloat(document.getElementById('finValor').value) || 0
+        };
+
+        financeiro.unshift(novo);
+        salvarBD(DB_FIN, financeiro);
+        document.getElementById('finForm').reset();
+        document.getElementById('finData').value = new Date().toISOString().split('T')[0];
+        renderizarFinanceiro();
+    }
+
+    function removerLancamento(id) {
+        if(confirm('Deseja excluir esta movimentação financeira?')) {
+            financeiro = financeiro.filter(item => item.id !== id);
+            salvarBD(DB_FIN, financeiro);
+            renderizarFinanceiro();
+        }
+    }
+
+    function renderizarFinanceiro() {
+        const mesSel = document.getElementById('finFiltroMes').value;
+        const busca = document.getElementById('finBusca').value.toLowerCase();
+        const tabela = document.getElementById('finTabelaCorpo');
+        tabela.innerHTML = '';
+
+        let totalEntradas = 0;
+        let totalSaidas = 0;
+        let totalPendente = 0;
+
+        const filtrados = financeiro.filter(item => {
+            const bateMes = item.data.startsWith(mesSel);
+            const bateBusca = item.entidade.toLowerCase().includes(busca) || item.descricao.toLowerCase().includes(busca);
+            return bateMes && bateBusca;
+        });
+
+        filtrados.forEach(item => {
+            if(item.status === 'Pago') {
+                if(item.tipo === 'Entrada') totalEntradas += item.valor;
+                if(item.tipo === 'Saída') totalSaidas += item.valor;
+            } else {
+                if(item.tipo === 'Entrada') totalPendente += item.valor;
+                if(item.tipo === 'Saída') totalPendente -= item.valor;
+            }
+
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-slate-800/50 transition";
+            tr.innerHTML = `
+                <td class="p-3 font-mono text-slate-400">${item.data.split('-').reverse().join('/')}</td>
+                <td class="p-3">
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${item.tipo === 'Entrada' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}">
+                        ${item.tipo}
+                    </span>
+                </td>
+                <td class="p-3 font-semibold text-slate-100">${item.entidade}</td>
+                <td class="p-3 text-slate-300">${item.descricao}</td>
+                <td class="p-3 text-slate-400 text-xs">${item.categoria}</td>
+                <td class="p-3 text-slate-400 text-xs">${item.meio}</td>
+                <td class="p-3">
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${item.status === 'Pago' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'}">
+                        ${item.status}
+                    </span>
+                </td>
+                <td class="p-3 text-right font-bold font-mono ${item.tipo === 'Entrada' ? 'text-emerald-400' : 'text-rose-400'}">
+                    ${item.tipo === 'Saída' ? '-' : ''}R$ ${item.valor.toFixed(2).replace('.', ',')}
+                </td>
+                <td class="p-3 text-center no-print">
+                    <button onclick="removerLancamento(${item.id})" title="Excluir" class="text-rose-400 hover:text-rose-300 p-1">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </td>
+            `;
+            tabela.appendChild(tr);
+        });
+
+        document.getElementById('finCardEntradas').innerText = `R$ ${totalEntradas.toFixed(2).replace('.', ',')}`;
+        document.getElementById('finCardSaidas').innerText = `R$ ${totalSaidas.toFixed(2).replace('.', ',')}`;
+        document.getElementById('finCardPendente').innerText = `R$ ${totalPendente.toFixed(2).replace('.', ',')}`;
+        document.getElementById('finCardSaldo').innerText = `R$ ${(totalEntradas - totalSaidas).toFixed(2).replace('.', ',')}`;
+    }
+
+    function exportarExcelFinanceiro() {
+        const mesSel = document.getElementById('finFiltroMes').value;
+        const filtrados = financeiro.filter(item => item.data.startsWith(mesSel));
+        
+        if(filtrados.length === 0) {
+            alert('Sem dados para exportar neste mês.');
+            return;
+        }
+
+        const formatados = filtrados.map(i => ({
+            Data: i.data.split('-').reverse().join('/'),
+            Tipo: i.tipo,
+            'Cliente / Fornecedor': i.entidade,
+            Descrição: i.descricao,
+            Categoria: i.categoria,
+            Pagamento: i.meio,
+            Status: i.status,
+            'Valor (R$)': i.valor
+        }));
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(formatados);
+        XLSX.utils.book_append_sheet(wb, ws, "Fluxo de Caixa");
+        XLSX.writeFile(wb, `RD_Servicos_Caixa_${mesSel}.xlsx`);
+    }
+
+    /* --- LEITURA & PREENCHIMENTO DE PDF BANCÁRIO --- */
+    async function processarPDFBancario(event) {
+        const file = event.target.files[0];
+        if (!file || file.type !== 'application/pdf') {
+            mostrarMsgPDF('Por favor, selecione um arquivo PDF válido.', 'erro');
+            return;
+        }
+
+        mostrarMsgPDF('Lendo PDF do banco...', 'info');
+
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            let fullText = '';
+
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(' ');
+                fullText += pageText + ' ';
+            }
+
+            extrairEDefinirDadosPDF(fullText);
+        } catch (err) {
+            console.error(err);
+            mostrarMsgPDF('Erro ao ler o arquivo PDF. Tente com outro comprovante ou extrato.', 'erro');
+        }
+    }
+
+    function extrairEDefinirDadosPDF(text) {
+        const cleanText = text.replace(/\s+/g, ' ');
+        
+        // 1. EXTRAIR VALOR
+        let valor = 0;
+        const matchValor = cleanText.match(/(?:R\$|VALOR|Valor|R\$\s*)?\s*(\d{1,3}(?:\.\d{3})*,\d{2})/);
+        if (matchValor) {
+            valor = parseFloat(matchValor[1].replace(/\./g, '').replace(',', '.'));
+        }
+
+        // 2. EXTRAIR DATA
+        let dataFormatada = new Date().toISOString().split('T')[0];
+        const matchData = cleanText.match(/(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/);
+        if (matchData) {
+            const day = matchData[1];
+            const month = matchData[2];
+            const year = matchData[3];
+            dataFormatada = `${year}-${month}-${day}`;
+        }
+
+        // 3. IDENTIFICAR TIPO (Entrada vs Saída)
+        let tipo = 'Entrada';
+        const textLower = cleanText.toLowerCase();
+        if (textLower.includes('comprovante de envio') || textLower.includes('débito') || textLower.includes('transferência enviada') || textLower.includes('pagamento efetuado') || textLower.includes('pago a')) {
+            tipo = 'Saída';
+        } else if (textLower.includes('comprovante de recebimento') || textLower.includes('crédito') || textLower.includes('pix recebido') || textLower.includes('recebido de')) {
+            tipo = 'Entrada';
+        }
+
+        // 4. IDENTIFICAR ENTIDADE / NOME DO CLIENTE OU FORNECEDOR
+        let entidade = '';
+        
+        // Regras genéricas por banco
+        const regexNome = /(?:Nome|Recebedor|Favorecido|Destinatário|Origem|Pagador|De:)\s*[:\-]?\s*([A-Za-zÀ-ÖØ-öø-ÿ\s]{3,35})/i;
+        const matchNome = cleanText.match(regexNome);
+
+        if (matchNome && matchNome[1]) {
+            entidade = matchNome[1].trim();
+        }
+
+        // Limpezas extras no nome capturado
+        entidade = entidade.replace(/(CPF|CNPJ|Chave|Instituição|Banco|Valor|Data|Código|Autenticação).*/i, '').trim();
+
+        if (!entidade) {
+            entidade = tipo === 'Entrada' ? 'Cliente Pix' : 'Fornecedor / Despesa';
+        }
+
+        // 5. IDENTIFICAR CATEGORIA E DESCRIÇÃO
+        let categoria = 'Outros';
+        let descricao = `Pix - ${entidade}`;
+
+        if (textLower.includes('posto') || textLower.includes('combustivel') || textLower.includes('gasolina') || textLower.includes('shell') || textLower.includes('ipiranga')) {
+            categoria = 'Combustível';
+            descricao = 'Gasolina / Combustível';
+        } else if (textLower.includes('cloro') || textLower.includes('piscina') || textLower.includes('quimico')) {
+            categoria = 'Piscina';
+            descricao = 'Insumos de Piscina';
+        } else if (textLower.includes('stihl') || textLower.includes('pecas') || textLower.includes('nylon') || textLower.includes('ferragens')) {
+            categoria = 'Peças/Insumos';
+            descricao = 'Fios/Peças de Equipamento';
+        } else if (tipo === 'Entrada') {
+            categoria = 'Jardinagem';
+            descricao = 'Serviço de Jardinagem / Manutenção';
+        }
+
+        // 6. PREENCHER FORMULÁRIO DO CAIXA
+        document.getElementById('finData').value = dataFormatada;
+        document.getElementById('finTipo').value = tipo;
+        document.getElementById('finEntidade').value = entidade;
+        document.getElementById('finDescricao').value = descricao;
+        document.getElementById('finCategoria').value = categoria;
+        document.getElementById('finMeio').value = 'Pix';
+        document.getElementById('finStatus').value = 'Pago';
+        document.getElementById('finValor').value = valor > 0 ? valor.toFixed(2) : '';
+
+        mostrarMsgPDF(`✅ Dados extraídos com sucesso do comprovante! Verifique e clique em "+ Adicionar Lançamento".`, 'sucesso');
+    }
+
+    function mostrarMsgPDF(text, tipo) {
+        const el = document.getElementById('pdfStatusMsg');
+        el.classList.remove('hidden', 'text-emerald-400', 'text-rose-400', 'text-blue-400');
+        
+        if (tipo === 'sucesso') el.classList.add('text-emerald-400');
+        else if (tipo === 'erro') el.classList.add('text-rose-400');
+        else el.classList.add('text-blue-400');
+
+        el.textContent = text;
+    }
+
+    /* --- CLIENTES --- */
+    function salvarCliente(e) {
+        e.preventDefault();
+        const novo = {
+            id: Date.now(),
+            nome: document.getElementById('cliNome').value,
+            telefone: document.getElementById('cliTelefone').value.replace(/\D/g,''),
+            endereco: document.getElementById('cliEndereco').value,
+            servico: document.getElementById('cliServico').value,
+            gramado: document.getElementById('cliGramado').value,
+            piscina: document.getElementById('cliPiscina').value,
+            obs: document.getElementById('cliObs').value
+        };
+
+        clientes.unshift(novo);
+        salvarBD(DB_CLI, clientes);
+        document.getElementById('cliForm').reset();
+        renderizarClientes();
+        atualizarSelectClientesDoc();
+    }
+
+    function removerCliente(id) {
+        if(confirm('Deseja excluir este cliente?')) {
+            clientes = clientes.filter(c => c.id !== id);
+            salvarBD(DB_CLI, clientes);
+            renderizarClientes();
+            atualizarSelectClientesDoc();
+        }
+    }
+
+    function renderizarClientes() {
+        const busca = document.getElementById('cliBusca').value.toLowerCase();
+        const grid = document.getElementById('cliListaGrid');
+        grid.innerHTML = '';
+
+        const filtrados = clientes.filter(c => c.nome.toLowerCase().includes(busca) || c.endereco.toLowerCase().includes(busca));
+
+        filtrados.forEach(c => {
+            const historicoTotal = financeiro
+                .filter(f => f.entidade.toLowerCase().includes(c.nome.toLowerCase()) && f.tipo === 'Entrada' && f.status === 'Pago')
+                .reduce((sum, item) => sum + item.valor, 0);
+
+            const card = document.createElement('div');
+            card.className = "bg-slate-900/80 p-4 rounded-xl border border-slate-700/60 flex flex-col justify-between space-y-3";
+            card.innerHTML = `
+                <div>
+                    <div class="flex justify-between items-start">
+                        <h4 class="font-bold text-slate-100 text-base">${c.nome}</h4>
+                        <span class="text-[10px] bg-blue-500/20 text-blue-300 font-semibold px-2 py-0.5 rounded-full">${c.servico}</span>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-1"><i class="fa-solid fa-location-dot text-slate-500 mr-1"></i>${c.endereco}</p>
+                    
+                    <div class="grid grid-cols-2 gap-2 mt-3 text-xs bg-slate-800/50 p-2.5 rounded-lg border border-slate-700/40">
+                        <div>
+                            <span class="text-slate-500 block text-[10px]">Gramado:</span>
+                            <span class="font-semibold text-slate-200">${c.gramado ? c.gramado + ' m²' : 'N/A'}</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 block text-[10px]">Piscina:</span>
+                            <span class="font-semibold text-slate-200">${c.piscina ? c.piscina + ' L' : 'N/A'}</span>
+                        </div>
+                    </div>
+
+                    ${c.obs ? `<p class="text-xs text-slate-400 italic mt-2 bg-slate-950/40 p-2 rounded border border-slate-800"><i class="fa-solid fa-circle-info mr-1 text-slate-500"></i>${c.obs}</p>` : ''}
+                </div>
+
+                <div class="pt-2 border-t border-slate-800 flex justify-between items-center text-xs">
+                    <div>
+                        <span class="text-[10px] text-slate-500 block">Total em Serviços:</span>
+                        <span class="font-bold text-emerald-400 font-mono">R$ ${historicoTotal.toFixed(2).replace('.', ',')}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <a href="https://wa.me/55${c.telefone}" target="_blank" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg font-bold flex items-center gap-1 transition shadow">
+                            <i class="fa-brands fa-whatsapp text-sm"></i> Whats
+                        </a>
+                        <button onclick="removerCliente(${c.id})" class="text-rose-400 hover:text-rose-300 p-1">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    /* --- EQUIPAMENTOS --- */
+    function salvarEquipamento(e) {
+        e.preventDefault();
+        const novo = {
+            id: Date.now(),
+            nome: document.getElementById('eqNome').value,
+            tipo: document.getElementById('eqTipo').value,
+            dataUltima: document.getElementById('eqDataUltima').value,
+            dataProxima: document.getElementById('eqDataProxima').value,
+            notas: document.getElementById('eqNotas').value
+        };
+
+        equipamentos.unshift(novo);
+        salvarBD(DB_EQ, equipamentos);
+        document.getElementById('eqForm').reset();
+        renderizarEquipamentos();
+    }
+
+    function removerEquipamento(id) {
+        if(confirm('Deseja excluir este equipamento?')) {
+            equipamentos = equipamentos.filter(eq => eq.id !== id);
+            salvarBD(DB_EQ, equipamentos);
+            renderizarEquipamentos();
+        }
+    }
+
+    function renderizarEquipamentos() {
+        const grid = document.getElementById('eqGrid');
+        grid.innerHTML = '';
+        const hoje = new Date().toISOString().split('T')[0];
+
+        equipamentos.forEach(eq => {
+            let statusBg = "bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
+            let statusTexto = "Em Dia";
+            let statusIcon = "fa-check-circle";
+
+            if (eq.dataProxima < hoje) {
+                statusBg = "bg-rose-500/10 text-rose-400 border-rose-500/30";
+                statusTexto = "Manutenção Atrasada";
+                statusIcon = "fa-triangle-exclamation";
+            } else if (eq.dataProxima <= somarDiasData(hoje, 10)) {
+                statusBg = "bg-amber-500/10 text-amber-400 border-amber-500/30";
+                statusTexto = "Revisão Próxima";
+                statusIcon = "fa-clock";
+            }
+
+            const card = document.createElement('div');
+            card.className = "bg-slate-800/80 p-4 rounded-xl border border-slate-700/60 flex flex-col justify-between space-y-3";
+            card.innerHTML = `
+                <div>
+                    <div class="flex justify-between items-start">
+                        <h4 class="font-bold text-slate-100 text-base">${eq.nome}</h4>
+                        <button onclick="removerEquipamento(${eq.id})" class="text-rose-400 hover:text-rose-300 text-xs">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-0.5"><i class="fa-solid fa-gas-pump mr-1 text-slate-500"></i>${eq.tipo}</p>
+
+                    <div class="mt-3">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${statusBg}">
+                            <i class="fa-solid ${statusIcon}"></i> ${statusTexto}
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 mt-3 text-xs bg-slate-900/60 p-2.5 rounded-lg border border-slate-700/40">
+                        <div>
+                            <span class="text-slate-500 block text-[10px]">Última Revisão:</span>
+                            <span class="font-mono text-slate-300">${eq.dataUltima.split('-').reverse().join('/')}</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 block text-[10px]">Próxima Revisão:</span>
+                            <span class="font-mono font-bold text-slate-100">${eq.dataProxima.split('-').reverse().join('/')}</span>
+                        </div>
+                    </div>
+
+                    ${eq.notas ? `<p class="text-xs text-slate-400 italic mt-2 bg-slate-950/40 p-2 rounded border border-slate-800"><i class="fa-solid fa-wrench text-slate-500 mr-1"></i>${eq.notas}</p>` : ''}
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    function somarDiasData(dataStr, dias) {
+        const d = new Date(dataStr);
+        d.setDate(d.getDate() + dias);
+        return d.toISOString().split('T')[0];
+    }
+
+    /* --- ORÇAMENTOS E RECIBOS --- */
+    function atualizarSelectClientesDoc() {
+        const select = document.getElementById('docClienteSelect');
+        select.innerHTML = '<option value="">-- Selecionar da Lista de Clientes --</option>';
+        clientes.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = `${c.nome} (${c.endereco})`;
+            select.appendChild(opt);
+        });
+    }
+
+    function preencherClienteDoc() {
+        const id = document.getElementById('docClienteSelect').value;
+        if(!id) return;
+        const cliente = clientes.find(c => c.id == id);
+        if(cliente) {
+            document.getElementById('docClienteNome').value = cliente.nome;
+            document.getElementById('docClienteEnd').value = cliente.endereco;
+            gerarPreviewDoc();
+        }
+    }
+
+    function gerarPreviewDoc() {
+        const tipo = document.getElementById('docTipo').value;
+        const cliente = document.getElementById('docClienteNome').value || 'Nome do Cliente';
+        const endereco = document.getElementById('docClienteEnd').value || 'Endereço do Local';
+        const servicos = document.getElementById('docServicos').value || 'Descrição dos serviços prestados ou peças aplicadas.';
+        const valor = parseFloat(document.getElementById('docValor').value) || 0;
+        const dataStr = document.getElementById('docData').value ? document.getElementById('docData').value.split('-').reverse().join('/') : new Date().toLocaleDateString('pt-BR');
+
+        const container = document.getElementById('docPreviewContainer');
+        container.innerHTML = `
+            <div class="border-b-2 border-slate-900 pb-4 flex justify-between items-start">
+                <div>
+                    <h2 class="text-xl font-black uppercase tracking-wide text-slate-900">RD SERVIÇOS</h2>
+                    <p class="text-xs font-semibold text-slate-600">Manutenção & Jardinagem Profissional</p>
+                    <p class="text-[11px] text-slate-500">Contato: (11) 99999-8888 | Biritiba Mirim - SP</p>
+                </div>
+                <div class="text-right">
+                    <span class="inline-block bg-slate-900 text-white font-bold text-xs uppercase px-3 py-1 rounded">
+                        ${tipo}
+                    </span>
+                    <p class="text-xs text-slate-500 mt-1 font-mono">Data: ${dataStr}</p>
+                </div>
+            </div>
+
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs space-y-1">
+                <p><strong class="text-slate-700">Cliente:</strong> ${cliente}</p>
+                <p><strong class="text-slate-700">Local do Serviço:</strong> ${endereco}</p>
+            </div>
+
+            <div class="space-y-2">
+                <h4 class="text-xs font-bold uppercase text-slate-700 border-b border-slate-200 pb-1">Discriminação dos Serviços / Material</h4>
+                <p class="text-xs text-slate-800 whitespace-pre-line leading-relaxed min-h-[80px]">${servicos}</p>
+            </div>
+
+            <div class="bg-slate-100 p-4 rounded-xl border border-slate-300 flex justify-between items-center">
+                <div>
+                    <span class="text-xs font-bold uppercase text-slate-600 block">VALOR TOTAL:</span>
+                    <span class="text-xs text-slate-500">Condição: Pagamento via Pix / Dinheiro</span>
+                </div>
+                <div class="text-2xl font-black text-slate-900 font-mono">
+                    R$ ${valor.toFixed(2).replace('.', ',')}
+                </div>
+            </div>
+
+            <div class="pt-8 text-center border-t border-slate-200">
+                <div class="w-48 border-b border-slate-400 mx-auto mb-1"></div>
+                <p class="text-xs font-bold text-slate-800">RD Serviços de Manutenção e Jardinagem</p>
+                <p class="text-[10px] text-slate-500">Garantia de Qualidade e Eficiência</p>
+            </div>
+        `;
+    }
+
+    function copiarDocWhatsApp() {
+        const tipo = document.getElementById('docTipo').value;
+        const cliente = document.getElementById('docClienteNome').value || 'Cliente';
+        const servicos = document.getElementById('docServicos').value || '';
+        const valor = parseFloat(document.getElementById('docValor').value) || 0;
+
+        const texto = `*RD SERVIÇOS DE MANUTENÇÃO E JARDINAGEM*\n` +
+                      `📄 *${tipo.toUpperCase()}*\n\n` +
+                      `👤 *Cliente:* ${cliente}\n` +
+                      `🛠️ *Serviços:*\n${servicos}\n\n` +
+                      `💰 *Valor Total:* R$ ${valor.toFixed(2).replace('.', ',')}\n` +
+                      `📱 Chave Pix / Dúvidas: Entre em contato conosco!`;
+
+        const tempArea = document.createElement('textarea');
+        tempArea.value = texto;
+        document.body.appendChild(tempArea);
+        tempArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempArea);
+
+        alert('Texto do documento copiado para a área de transferência! Cole no WhatsApp do cliente.');
+    }
+
+    /* --- PRECIFICAÇÃO E ROI --- */
+    function setPrecMode(mode) {
+        precMode = mode;
+        document.getElementById('btn-prec-diario').className = mode === 'diario' 
+            ? 'px-3 py-1.5 text-xs font-bold rounded-lg text-white bg-blue-600 transition' 
+            : 'px-3 py-1.5 text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200 transition';
+        
+        document.getElementById('btn-prec-mensal').className = mode === 'mensal' 
+            ? 'px-3 py-1.5 text-xs font-bold rounded-lg text-white bg-blue-600 transition' 
+            : 'px-3 py-1.5 text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200 transition';
+
+        document.getElementById('row-prec-dias').style.display = mode === 'mensal' ? 'block' : 'none';
+
+        if(mode === 'mensal') {
+            document.getElementById('lbl-prec-custo').textContent = 'Custo Operacional Mensal';
+            document.getElementById('lbl-prec-lucro').textContent = 'Lucro Líquido Mensal (RD)';
+            document.getElementById('lbl-prec-total').textContent = 'Faturamento Mensal Necessário';
+        } else {
+            document.getElementById('lbl-prec-custo').textContent = 'Custo Operacional Direto';
+            document.getElementById('lbl-prec-lucro').textContent = 'Margem RD (Lucro Líquido)';
+            document.getElementById('lbl-prec-total').textContent = 'Preço Final ao Cliente';
+        }
+
+        atualizarPrecificacao();
+    }
+
+    function initPrecChart() {
+        const ctx = document.getElementById('precChart').getContext('2d');
+        precChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Combustível', 'Insumos', 'Depreciação', 'Mão de Obra', 'Margem RD'],
+                datasets: [{
+                    data: [0, 0, 0, 0, 0],
+                    backgroundColor: ['#3b82f6', '#818cf8', '#10b981', '#f59e0b', '#a855f7'],
+                    borderColor: '#1e293b',
+                    borderWidth: 2,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+
+    function atualizarPrecificacao() {
+        const dias = parseFloat(document.getElementById('slider-prec-dias').value) || 20;
+        const combustivel = parseFloat(document.getElementById('slider-prec-combustivel').value) || 0;
+        const insumos = parseFloat(document.getElementById('slider-prec-insumos').value) || 0;
+        const depreciacao = parseFloat(document.getElementById('slider-prec-depreciacao').value) || 0;
+        const horas = parseFloat(document.getElementById('slider-prec-horas').value) || 0;
+        const valorHora = parseFloat(document.getElementById('slider-prec-valorHora').value) || 0;
+        const margem = parseFloat(document.getElementById('slider-prec-margem').value) || 0;
+
+        document.getElementById('val-prec-dias').textContent = `${dias} dias`;
+        document.getElementById('val-prec-combustivel').textContent = `R$ ${combustivel.toFixed(2)}`;
+        document.getElementById('val-prec-insumos').textContent = `R$ ${insumos.toFixed(2)}`;
+        document.getElementById('val-prec-depreciacao').textContent = `R$ ${depreciacao.toFixed(2)}`;
+        document.getElementById('val-prec-horas').textContent = `${horas} h`;
+        document.getElementById('val-prec-valorHora').textContent = `R$ ${valorHora.toFixed(2)}/h`;
+        document.getElementById('val-prec-margem').textContent = `${margem}%`;
+
+        const factor = precMode === 'mensal' ? dias : 1;
+
+        const cTotal = combustivel * factor;
+        const iTotal = insumos * factor;
+        const dTotal = depreciacao * factor;
+        const mTotal = (horas * valorHora) * factor;
+
+        const custoTotal = cTotal + iTotal + dTotal + mTotal;
+        const lucroTotal = custoTotal * (margem / 100);
+        const precoFinal = custoTotal + lucroTotal;
+
+        document.getElementById('prec-custo').textContent = `R$ ${custoTotal.toFixed(2).replace('.', ',')}`;
+        document.getElementById('prec-lucro').textContent = `R$ ${lucroTotal.toFixed(2).replace('.', ',')}`;
+        document.getElementById('prec-total').textContent = `R$ ${precoFinal.toFixed(2).replace('.', ',')}`;
+
+        if (precChart) {
+            precChart.data.datasets[0].data = [cTotal, iTotal, dTotal, mTotal, lucroTotal];
+            precChart.update();
+        }
+    }
+</script>
